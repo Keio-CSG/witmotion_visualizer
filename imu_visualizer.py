@@ -35,9 +35,9 @@ class ImuVisualizer:
         if self.rotation is not None:
             roll, pitch, yaw = self.rotation
             print(f"roll: {roll}, pitch: {pitch}, yaw: {yaw}")
-            R = Rotation.from_euler("zyx", [yaw, pitch, roll]).as_matrix()
+            R = Rotation.from_euler("ZYX", [yaw, pitch, roll]).as_matrix()
             if self.prev_rotation is not None:
-                inv_prev_R = Rotation.from_euler("xyz", [-self.prev_rotation[0], -self.prev_rotation[1], -self.prev_rotation[2]]).as_matrix()
+                inv_prev_R = Rotation.from_euler("XYZ", [-self.prev_rotation[0], -self.prev_rotation[1], -self.prev_rotation[2]]).as_matrix()
                 self.local_frame.rotate(inv_prev_R, center=(0, 0, 0))
             self.local_frame.rotate(R, center=(0, 0, 0))
             self.vis.update_geometry(self.local_frame)
