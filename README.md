@@ -45,3 +45,15 @@ sensor = WitMotionSensor("EA:78:B5:4D:E3:21")
 点群の方はグローバルの固定座標(回転がすべてゼロの位置)でメッシュがIMUの現在の姿勢を示す
 
 接続が上手くいかないこともあるので、何度かやり直す必要があるかも
+
+## 4. 磁気センサのキャリブレーション
+
+`sensor.start(calibration=True)`とすると、開始前に15秒間キャリブレーション時間が設けられる
+(これをやらないと方位角の誤差が大きくなってしまう)。
+
+```
+Rotate the sensor 360 degree around three axis
+(it is recommended to rotate 3 circle, 360 degree *3)
+```
+
+それぞれの軸周りで3回転ほどするとよいらしい

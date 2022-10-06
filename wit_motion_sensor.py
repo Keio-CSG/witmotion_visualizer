@@ -17,6 +17,7 @@ class WitMotionSensor(AppNotifierBase):
     スレッド内でasyncioのイベントループを作って、そこでBleakClientを動かす
     """
     notify_uuid = "0000ffe4-0000-1000-8000-00805f9a34fb" # 通知を受け取るUUID。恐らく固定値
+    write_uuid = "0000ffe9-0000-1000-8000-00805f9a34fb" # 設定を送るためのUUID。
 
     def __init__(self, 
         mac_address: str,
@@ -30,10 +31,13 @@ class WitMotionSensor(AppNotifierBase):
         self.finished = False
         self.current_data: Tuple[float,float,float] = (0,0,0)
 
+        self._calibration = False
+
     def notify(self):
         self.on_update(self.current_data)
 
-    def start(self):
+    def start(self, calibration: bool = False):
+        self._calibration = calibration
         super().start()
         self.thread.start()
 
@@ -49,6 +53,8 @@ class WitMotionSensor(AppNotifierBase):
         async with BleakClient(self.mac_address) as client:
             x = client.is_connected
             print("Connected: {0}".format(x))
+            if self._calibration:
+                await self._calibrate(client)
             await client.start_notify(self.notify_uuid, self._notification_handler)
             while not self.finished:
                 await asyncio.sleep(0.1)
@@ -75,3 +81,16 @@ class WitMotionSensor(AppNotifierBase):
         # print(f"ax: {ax:.3f}, ay: {ay:.3f}, az: {az:.3f}, wx: {wx:.3f}, wy: {wy:.3f}, wz: {wz:.3f}, roll: {roll:.3f}, pitch: {pitch:.3f}, yaw: {yaw:.3f}")
         self.current_data = (roll * np.pi / 180, pitch * np.pi / 180, yaw * np.pi / 180) # roll, pitch, yawをラジアンに変換して格納
         self.event.set()
+
+    async def _calibrate(self, client: BleakClient):
+        # start magnetic calibration
+        await client.write_gatt_char(
+            self.write_uuid, 
+            b'\xFF\xAA\x01\x07\x00')
+        for i in range(15, 0, -1):
+            print(f"\rCalibration start in {i} seconds...", end="")
+            await asyncio.sleep(1)
+        await client.write_gatt_char(
+            self.write_uuid,
+            b'\xFF\xAA\x01\x00\x00')
+        print("finish magnetic calibration")

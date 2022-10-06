@@ -11,7 +11,7 @@ def main():
     def on_update(data: Tuple[float,float,float]):
         visualizer.rotation = data
     sensor = WitMotionSensor("EA:78:B5:4D:E3:21", app, on_update)
-    sensor.start()
+    sensor.start(calibration=True)
 
     app.run()
     sensor.stop()
