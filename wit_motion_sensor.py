@@ -55,16 +55,23 @@ class WitMotionSensor(AppNotifierBase):
             await client.stop_notify(self.notify_uuid)
 
     def _notification_handler(self, sender, data: bytearray):
-        data_list = [int.from_bytes(data[i:i+1], byteorder='little') for i in range(len(data))]
-        ax = (data_list[3] << 8 | data_list[2]) / 32768.0 * 16 * 9.8
-        ay = (data_list[5] << 8 | data_list[4]) / 32768.0 * 16 * 9.8
-        az = (data_list[7] << 8 | data_list[6]) / 32768.0 * 16 * 9.8
-        wx = (data_list[9] << 8 | data_list[8]) / 32768.0 * 2000
-        wy = (data_list[11] << 8 | data_list[10]) / 32768.0 * 2000
-        wz = (data_list[13] << 8 | data_list[12]) / 32768.0 * 2000
-        roll = (data_list[15] << 8 | data_list[14]) / 32768.0 * 180
-        pitch = (data_list[17] << 8 | data_list[16]) / 32768.0 * 180
-        yaw = (data_list[19] << 8 | data_list[18]) / 32768.0 * 180
+        header_bit = data[0]
+        assert header_bit == 0x55
+        flag_bit = data[1] # 0x51 or 0x71
+        assert flag_bit == 0x61 or flag_bit == 0x71
+        # 2 byteずつ取り出して、後ろのbyteが上位ビットになるようにsigned shortに変換
+        decoded = [int.from_bytes(data[i:i+2], byteorder='little', signed=True) for i in range(2, len(data), 2)]
+        # signed shortの桁数なので、-32768~32767の範囲になる
+        # なので一旦正規化してから各単位に合わせる
+        ax    = decoded[0] / 32768.0 * 16 * 9.8
+        ay    = decoded[1] / 32768.0 * 16 * 9.8
+        az    = decoded[2] / 32768.0 * 16 * 9.8
+        wx    = decoded[3] / 32768.0 * 2000
+        wy    = decoded[4] / 32768.0 * 2000
+        wz    = decoded[5] / 32768.0 * 2000
+        roll  = decoded[6] / 32768.0 * 180
+        pitch = decoded[7] / 32768.0 * 180
+        yaw   = decoded[8] / 32768.0 * 180
         # print(f"ax: {ax:.3f}, ay: {ay:.3f}, az: {az:.3f}, wx: {wx:.3f}, wy: {wy:.3f}, wz: {wz:.3f}, roll: {roll:.3f}, pitch: {pitch:.3f}, yaw: {yaw:.3f}")
         self.current_data = (roll * np.pi / 180, pitch * np.pi / 180, yaw * np.pi / 180) # roll, pitch, yawをラジアンに変換して格納
         self.event.set()
