@@ -1,6 +1,7 @@
 from typing import Tuple
 import open3d as o3d
 from scipy.spatial.transform import Rotation
+import numpy as np
 
 from util.app import App
 
@@ -34,7 +35,7 @@ class ImuVisualizer:
     def _render(self):
         if self.rotation is not None:
             roll, pitch, yaw = self.rotation
-            print(f"roll: {roll}, pitch: {pitch}, yaw: {yaw}")
+            print(f"roll: {roll*180/np.pi:.2f} deg, pitch: {pitch*180/np.pi:.2f} deg, yaw: {yaw*180/np.pi:.2f} deg")
             R = Rotation.from_euler("ZYX", [yaw, pitch, roll]).as_matrix()
             if self.prev_rotation is not None:
                 inv_prev_R = Rotation.from_euler("XYZ", [-self.prev_rotation[0], -self.prev_rotation[1], -self.prev_rotation[2]]).as_matrix()
