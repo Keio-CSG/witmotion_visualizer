@@ -10,7 +10,10 @@ def main():
 
     def on_update(data: Tuple[float,float,float]):
         visualizer.rotation = data
-    sensor = WitMotionSensor("EA:78:B5:4D:E3:21", app, on_update)
+    def on_sensor_terminated(e: Exception):
+        print("Sensor terminated:", e)
+        visualizer.stop()
+    sensor = WitMotionSensor("EA:78:B5:4D:E3:21", app, on_update, on_sensor_terminated)
     sensor.start(calibration=True)
 
     app.run()

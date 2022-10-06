@@ -22,10 +22,13 @@ class WitMotionSensor(AppNotifierBase):
     def __init__(self, 
         mac_address: str,
         app: App,
-        on_update: Callable[[Tuple[float,float,float]],None]) -> None:
+        on_update: Callable[[Tuple[float,float,float]],None],
+        on_terminated: Callable[[Exception],None],
+    ) -> None:
         super().__init__(app)
         self.mac_address = mac_address
         self.on_update = on_update
+        self.on_terminated = on_terminated
 
         self.thread = Thread(target=self._run_thread)
         self.finished = False
@@ -50,15 +53,20 @@ class WitMotionSensor(AppNotifierBase):
         loop.run_until_complete(self._run_async())
 
     async def _run_async(self):
-        async with BleakClient(self.mac_address) as client:
-            x = client.is_connected
-            print("Connected: {0}".format(x))
-            if self._calibration:
-                await self._calibrate(client)
-            await client.start_notify(self.notify_uuid, self._notification_handler)
-            while not self.finished:
-                await asyncio.sleep(0.1)
-            await client.stop_notify(self.notify_uuid)
+        try:
+            async with BleakClient(self.mac_address) as client:
+                x = client.is_connected
+                print("Connected: {0}".format(x))
+                if self._calibration:
+                    await self._calibrate(client)
+                await client.start_notify(self.notify_uuid, self._notification_handler)
+                while not self.finished:
+                    await asyncio.sleep(0.1)
+                await client.stop_notify(self.notify_uuid)
+        except Exception as e:
+            self.on_terminated(e)
+        finally:
+            self.finished = True
 
     def _notification_handler(self, sender, data: bytearray):
         header_bit = data[0]
