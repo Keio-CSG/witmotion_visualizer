@@ -35,12 +35,14 @@ class WitMotionSensor(AppNotifierBase):
         self.current_data: Tuple[float,float,float] = (0,0,0)
 
         self._calibration = False
+        self._do_notify = True
 
     def notify(self):
         self.on_update(self.current_data)
 
-    def start(self, calibration: bool = False):
+    def start(self, calibration: bool = False, do_notify: bool = True):
         self._calibration = calibration
+        self._do_notify = do_notify
         super().start()
         self.thread.start()
 
@@ -59,10 +61,11 @@ class WitMotionSensor(AppNotifierBase):
                 print("Connected: {0}".format(x))
                 if self._calibration:
                     await self._calibrate(client)
-                await client.start_notify(self.notify_uuid, self._notification_handler)
-                while not self.finished:
-                    await asyncio.sleep(0.1)
-                await client.stop_notify(self.notify_uuid)
+                if self._do_notify:
+                    await client.start_notify(self.notify_uuid, self._notification_handler)
+                    while not self.finished:
+                        await asyncio.sleep(0.1)
+                    await client.stop_notify(self.notify_uuid)
         except Exception as e:
             self.on_terminated(e)
         finally:
